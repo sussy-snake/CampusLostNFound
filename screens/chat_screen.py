@@ -210,7 +210,7 @@ class ChatScreen(ctk.CTkFrame):
             bubble_frame,
             text=time_str,
             font=FONT["caption"],
-            text_color="#ffffff80" if is_mine else GLASS["text_dim"],
+            text_color="#aaaacc" if is_mine else GLASS["text_dim"],
         ).pack(padx=14, pady=(0, 6), anchor="e")
 
     def _scroll_to_bottom(self):
