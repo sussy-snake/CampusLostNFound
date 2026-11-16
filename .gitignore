@@ -1,0 +1,47 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Database (runtime-generated) ──────────────────────────────────────────────
+*.db
+*.sqlite3
+*.sqlite
+
+# ── Build / Distribution ───────────────────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+*.egg
+
+# ── IDE & Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Internal check/test scripts ───────────────────────────────────────────────
+utils/__check__.py
+utils/__pycache__/
+
+# ── Uploaded images / attachments ─────────────────────────────────────────────
+assets/*.png
+assets/*.jpg
+assets/*.jpeg
