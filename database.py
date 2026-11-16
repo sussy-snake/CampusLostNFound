@@ -266,6 +266,22 @@ class DatabaseManager:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def get_match_for_item(self, item_id: int) -> dict | None:
+        """
+        Return the most recent active (or any) match where this item
+        appears as either the lost or the found side.
+        Used to let finders open chat directly from My Reports.
+        """
+        row = self.conn.execute(
+            """SELECT * FROM matches
+               WHERE (lost_item_id = ? OR found_item_id = ?)
+               ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END,
+                        created_at DESC
+               LIMIT 1""",
+            (item_id, item_id),
+        ).fetchone()
+        return dict(row) if row else None
+
     def resolve_match(self, match_id: int):
         self.conn.execute(
             "UPDATE matches SET status='resolved' WHERE match_id=?", (match_id,)

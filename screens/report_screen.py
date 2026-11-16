@@ -255,15 +255,29 @@ class ReportScreen(ctk.CTkFrame):
             self.db.update_item_status(lost["item_id"],    "matched")
             self.db.update_item_status(found_item_id,      "matched")
 
-            # Notify the owner of the lost item
             finder_name = self.current_user.get("username", "Someone")
             pct         = int(score * 100)
-            msg = (
+
+            # ── Notify the OWNER of the lost item ──────────────────────────────
+            msg_owner = (
                 f"🔗  Match found ({pct}% confidence) for your lost "
                 f"{lost['category']} ({lost['color']}, {lost['brand'] or 'unknown brand'})! "
-                f"Found by {finder_name}. Tap to connect."
+                f"Found by {finder_name}. Go to Notifications → Connect with Finder to chat."
             )
-            self.db.add_notification(lost["user_id"], match_id, msg)
+            self.db.add_notification(lost["user_id"], match_id, msg_owner)
+
+            # ── Notify the FINDER (current user) so they can open chat too ─────
+            owner = self.db.get_user_by_id(lost["user_id"])
+            owner_name = owner["username"] if owner else "the owner"
+            msg_finder = (
+                f"✅  Your found {lost['category']} ({lost['color']}, "
+                f"{lost['brand'] or 'unknown brand'}) matched a lost report by "
+                f"{owner_name} ({pct}% confidence)! "
+                f"Go to My Reports → Chat to connect."
+            )
+            self.db.add_notification(
+                self.current_user["user_id"], match_id, msg_finder
+            )
 
     def _finish(self, item_id: int):
         if callable(self.on_done):

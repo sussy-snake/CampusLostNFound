@@ -208,6 +208,7 @@ class PortalScreen(ctk.CTkFrame):
             current_user=self.current_user,
             db=self.db,
             on_back=self._show_dashboard,
+            on_open_chat=self._open_chat,
         ).grid(row=0, column=0, sticky="nsew")
 
     def _show_notifications(self):
@@ -396,12 +397,14 @@ class DashboardView(ctk.CTkFrame):
 class MyReportsView(ctk.CTkFrame):
     """Shows a user's submitted items with a status timeline for each."""
 
-    def __init__(self, master, current_user, db, on_back, **kwargs):
+    def __init__(self, master, current_user, db, on_back,
+                 on_open_chat=None, **kwargs):
         kwargs.setdefault("fg_color", "transparent")
         super().__init__(master, **kwargs)
         self.current_user = current_user
         self.db           = db
         self.on_back      = on_back
+        self.on_open_chat = on_open_chat   # callback(match_id, other_user_id)
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self._build()
@@ -501,7 +504,11 @@ class MyReportsView(ctk.CTkFrame):
         tl = StatusTimeline(card, steps=TIMELINE_STEPS,
                             active_step=active,
                             height=80)
-        tl.pack(fill="x", padx=12, pady=(4, 12))
+        tl.pack(fill="x", padx=12, pady=(4, 4))
+
+        # ── Chat button — visible for matched/returned items ───────────────────
+        if item["status"] in ("matched", "returned"):
+            self._add_chat_button(card, item)
 
         # Image path indicator
         if item.get("image_path"):
@@ -509,3 +516,55 @@ class MyReportsView(ctk.CTkFrame):
                          text=f"📎  {item['image_path']}",
                          font=FONT["caption"],
                          text_color=GLASS["text_dim"]).pack(anchor="w", padx=12, pady=(0, 8))
+
+    def _add_chat_button(self, card: ctk.CTkFrame, item: dict):
+        """
+        Look up the match for this item and add a glowing Chat button.
+        Works for both the item owner (lost) and the finder (found).
+        """
+        match = self.db.get_match_for_item(item["item_id"])
+        if not match:
+            return  # match not yet created (shouldn't happen for status=matched)
+
+        # Determine who the OTHER person is
+        lost_item  = self.db.get_item_by_id(match["lost_item_id"])
+        found_item = self.db.get_item_by_id(match["found_item_id"])
+        my_id      = self.current_user["user_id"]
+
+        if lost_item and lost_item["user_id"] == my_id:
+            # I am the owner → chat with finder
+            other_id   = found_item["user_id"] if found_item else None
+            other_role = "Finder"
+        else:
+            # I am the finder → chat with owner
+            other_id   = lost_item["user_id"] if lost_item else None
+            other_role = "Owner"
+
+        if not other_id:
+            return
+
+        other_user = self.db.get_user_by_id(other_id)
+        other_name = other_user["username"] if other_user else "the other party"
+        pct        = int((match.get("score") or 0) * 100)
+
+        btn_row = ctk.CTkFrame(card, fg_color="transparent")
+        btn_row.pack(anchor="w", padx=12, pady=(4, 12))
+
+        GlowButton(
+            btn_row,
+            text=f"💬  Chat with {other_role}  ({other_name})",
+            command=lambda mid=match["match_id"], oid=other_id:
+                self._open_chat(mid, oid),
+            width=280, height=38,
+        ).pack(side="left")
+
+        ctk.CTkLabel(
+            btn_row,
+            text=f"  {pct}% match confidence",
+            font=FONT["caption"],
+            text_color=GLASS["text_dim"],
+        ).pack(side="left", padx=8)
+
+    def _open_chat(self, match_id: int, other_user_id: int):
+        if callable(self.on_open_chat):
+            self.on_open_chat(match_id, other_user_id)
